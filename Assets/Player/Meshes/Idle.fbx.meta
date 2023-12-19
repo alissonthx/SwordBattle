@@ -3,7 +3,17 @@ guid: b84a51df76bb4394091bd790591a02fe
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: new mika hair and clothes
+    second: {fileID: 2100000, guid: a075753f822ac0e42b943223ff9d3bcd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: new mika skin
+    second: {fileID: 2100000, guid: 6e236512b4f4cb04482313d00ae3bf82, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

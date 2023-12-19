@@ -4,9 +4,6 @@ using UnityEngine.InputSystem;
 public class Player : MonoBehaviour
 {
     private Animator animator;
-    private int isWalkingHash;
-    private int isRunningHash;
-
     public string IS_RUNING = "isWalking";
     public string IS_WALKING = "isRunning";
     private InputControls inputControls;
@@ -31,13 +28,12 @@ public class Player : MonoBehaviour
     private void Start()
     {
         animator = GetComponentInChildren<Animator>();
-
-        isWalkingHash = Animator.StringToHash(IS_WALKING);
-        isRunningHash = Animator.StringToHash(IS_RUNING);
     }
 
     private void Update()
     {
+        // Debug.Log("currentMovement: " + currentMovement + "  " + "movementPressed: " + movementPressed + "  " + "runPressed: " + runPressed);
+
         HandleMovement();
         HandleRotation();
     }
@@ -53,28 +49,7 @@ public class Player : MonoBehaviour
 
     private void HandleMovement()
     {
-        bool isRunning = animator.GetBool(isRunningHash);
-        bool isWalking = animator.GetBool(isWalkingHash);
-
-        // Walking
-        if (movementPressed && isWalking)
-        {
-            animator.SetBool(isWalkingHash, true);
-        }
-        if (!movementPressed && isWalking)
-        {
-            animator.SetBool(isWalkingHash, false);
-        }
-
-        // Running 
-        if (movementPressed && runPressed && !isRunning)
-        {
-            animator.SetBool(isRunningHash, true);
-        }
-        if (!movementPressed || !runPressed && isRunning)
-        {
-            animator.SetBool(isRunningHash, false);
-        }
+        
     }
 
     private void OnEnable()
