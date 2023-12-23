@@ -1,55 +1,74 @@
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
-    private Animator animator;
-    public string IS_RUNING = "isWalking";
-    public string IS_WALKING = "isRunning";
+    public static Player Instance { get; private set; }
+    private CharacterController characterController;
     private InputControls inputControls;
 
-    private Vector2 currentMovement;
+    private Vector2 currentMovementInput;
+    private Vector3 currentMovement;
     private bool movementPressed;
     private bool runPressed;
+    private float rotationFactorPerFrame = 1f;
 
     private void Awake()
     {
+        Instance = this;
+
+        characterController = GetComponent<CharacterController>();
+
         inputControls = new InputControls();
 
-        inputControls.PlayerControls.Movement.performed += ctx =>
-        {
-            currentMovement = ctx.ReadValue<Vector2>();
-            movementPressed = currentMovement.x != 0 || currentMovement.y != 0;
-        };
+        // Movement
+        inputControls.PlayerControls.Movement.started += OnMovementInput;
+        inputControls.PlayerControls.Movement.performed += OnMovementInput;
+        inputControls.PlayerControls.Movement.canceled += OnMovementInput;
 
-        inputControls.PlayerControls.Run.performed += ctx => runPressed = ctx.ReadValueAsButton();
+        // Run
+        inputControls.PlayerControls.Run.performed += context => runPressed = context.ReadValueAsButton();
     }
 
-    private void Start()
+    private void FixedUpdate()
     {
-        animator = GetComponentInChildren<Animator>();
+        characterController.Move(currentMovement * Time.deltaTime);
     }
 
     private void Update()
     {
         // Debug.Log("currentMovement: " + currentMovement + "  " + "movementPressed: " + movementPressed + "  " + "runPressed: " + runPressed);
 
-        HandleMovement();
         HandleRotation();
+    }
+
+    private void OnMovementInput(InputAction.CallbackContext context)
+    {
+        currentMovementInput = context.ReadValue<Vector2>();
+        currentMovement.x = currentMovementInput.x;
+        currentMovement.z = currentMovementInput.y;
+        movementPressed = currentMovement.x != 0 || currentMovement.z != 0;
     }
 
     private void HandleRotation()
     {
-        Vector3 currentPos = transform.position;
-        Vector3 newPos = new Vector3(currentMovement.x, 0, currentMovement.y);
-        Vector3 positionToLookAt = currentPos + newPos;
+        Vector3 positionToLookAt;
 
-        transform.LookAt(positionToLookAt);
-    }
+        // change in position to player should point to
+        positionToLookAt.x = currentMovement.x;
+        positionToLookAt.y = 0f;
+        positionToLookAt.z = currentMovement.z;
+        // the current rotation of player
+        Quaternion currentRotation = transform.rotation;
 
-    private void HandleMovement()
-    {
-        
+        if (movementPressed)
+        {
+            // creates a new rotation based on where the player is currently pressing
+            Quaternion targetRotation = Quaternion.LookRotation(positionToLookAt);
+            transform.rotation = Quaternion.Slerp(currentRotation, targetRotation, rotationFactorPerFrame * Time.deltaTime);
+
+        }
     }
 
     private void OnEnable()
@@ -59,5 +78,10 @@ public class Player : MonoBehaviour
     private void OnDisable()
     {
         inputControls.Disable();
+    }
+
+    public bool IsMovementPressed()
+    {
+        return movementPressed;
     }
 }
