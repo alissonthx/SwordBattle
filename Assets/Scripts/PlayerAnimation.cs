@@ -15,7 +15,6 @@ public class PlayerAnimation : MonoBehaviour
     private void Update()
     {
         HandleAnimation();
-        print(Player.Instance.IsMovementPressed());
     }
 
     private void HandleAnimation()
@@ -30,6 +29,11 @@ public class PlayerAnimation : MonoBehaviour
         else if (!Player.Instance.IsMovementPressed() && isWalking)
         {
             animator.SetBool(IS_WALKING, false);
+        }
+
+        if (Player.Instance.IsMovementPressed() && Player.Instance.IsRunPressed() && !isRunning)
+        {
+            animator.SetBool(IS_RUNING, true);
         }
     }
 }

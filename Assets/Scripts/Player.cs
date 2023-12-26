@@ -1,4 +1,3 @@
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -7,28 +6,22 @@ public class Player : MonoBehaviour
     public static Player Instance { get; private set; }
     private CharacterController characterController;
     private InputControls inputControls;
+    private GameInput gameInput;
 
     private Vector2 currentMovementInput;
     private Vector3 currentMovement;
+    private Vector3 currentRunMovement;
     private bool movementPressed;
     private bool runPressed;
-    private float rotationFactorPerFrame = 1f;
+    private bool isWalking;
+    [SerializeField] private float rotationFactorPerFrame = 15f;
+    [SerializeField] private float runSpeed = 3f;
+    [SerializeField] private float moveSpeed = 15f;
 
     private void Awake()
     {
         Instance = this;
-
         characterController = GetComponent<CharacterController>();
-
-        inputControls = new InputControls();
-
-        // Movement
-        inputControls.PlayerControls.Movement.started += OnMovementInput;
-        inputControls.PlayerControls.Movement.performed += OnMovementInput;
-        inputControls.PlayerControls.Movement.canceled += OnMovementInput;
-
-        // Run
-        inputControls.PlayerControls.Run.performed += context => runPressed = context.ReadValueAsButton();
     }
 
     private void FixedUpdate()
@@ -38,50 +31,85 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
-        // Debug.Log("currentMovement: " + currentMovement + "  " + "movementPressed: " + movementPressed + "  " + "runPressed: " + runPressed);
-
-        HandleRotation();
+        HandleGravity();
+        HandleMovement();
     }
 
-    private void OnMovementInput(InputAction.CallbackContext context)
+    private void OnRun(InputAction.CallbackContext context)
     {
-        currentMovementInput = context.ReadValue<Vector2>();
-        currentMovement.x = currentMovementInput.x;
-        currentMovement.z = currentMovementInput.y;
-        movementPressed = currentMovement.x != 0 || currentMovement.z != 0;
+        runPressed = context.ReadValueAsButton();
     }
 
-    private void HandleRotation()
+    private void HandleMovement()
     {
-        Vector3 positionToLookAt;
+        Vector2 inputVector = gameInput.GetMovementVectorNormalized();
+        Vector3 moveDir = new Vector3(inputVector.x, 0, inputVector.y);
 
-        // change in position to player should point to
-        positionToLookAt.x = currentMovement.x;
-        positionToLookAt.y = 0f;
-        positionToLookAt.z = currentMovement.z;
-        // the current rotation of player
-        Quaternion currentRotation = transform.rotation;
+        float playerRadius = 2f;
+        float playerHeight = 6f;
+        float moveDistance = moveSpeed * Time.deltaTime;
+        bool canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, moveDir, moveDistance);
+        isWalking = moveDir != Vector3.zero;
+        float rotateSpeed = 10f;
 
-        if (movementPressed)
+        if (!canMove)
         {
-            // creates a new rotation based on where the player is currently pressing
-            Quaternion targetRotation = Quaternion.LookRotation(positionToLookAt);
-            transform.rotation = Quaternion.Slerp(currentRotation, targetRotation, rotationFactorPerFrame * Time.deltaTime);
+            // Cannot move towards moveDir
+            // Attempt only X movement
+            Vector3 moveDirX = new Vector3(moveDir.x, 0, 0).normalized;
+            canMove = (moveDir.x < -0.5f || moveDir.x > +0.5f) && !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, moveDirX, moveDistance);
 
+            if (canMove)
+            {
+                // can move only on the X 
+                moveDir = moveDirX;
+            }
+            else
+            {
+                Vector3 moveDirZ = new Vector3(0, 0, moveDir.z).normalized;
+                canMove = (moveDir.z < -0.5f || moveDir.z > +0.5f) && !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, moveDirZ, moveDistance);
+
+                if (canMove)
+                {
+                    // can move only on the Z
+                    moveDir = moveDirZ;
+                }
+                else
+                {
+                    // Cannot move any direction
+                }
+            }
         }
+
+        if (canMove)
+        {
+            transform.position += moveDir * moveSpeed * Time.deltaTime;
+        }
+        transform.forward = Vector3.Slerp(transform.forward, moveDir, Time.deltaTime * rotateSpeed);
     }
 
-    private void OnEnable()
+    private void HandleGravity()
     {
-        inputControls.Enable();
-    }
-    private void OnDisable()
-    {
-        inputControls.Disable();
+        if (characterController.isGrounded)
+        {
+            float groundedGravity = -0.05f;
+            currentMovement.y = groundedGravity;
+            currentRunMovement.y = groundedGravity;
+        }
+        else
+        {
+            float gravity = -9.8f;
+            currentMovement.y += gravity;
+        }
     }
 
     public bool IsMovementPressed()
     {
         return movementPressed;
+    }
+
+    public bool IsRunPressed()
+    {
+        return runPressed;
     }
 }
