@@ -1,115 +1,114 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[RequireComponent(typeof(CharacterController))]
 public class Player : MonoBehaviour
 {
     public static Player Instance { get; private set; }
-    private CharacterController characterController;
-    private InputControls inputControls;
-    private GameInput gameInput;
+    private Animator anim;
+    private Camera cam;
+    private CharacterController controller;
 
-    private Vector2 currentMovementInput;
-    private Vector3 currentMovement;
+    private Vector3 desiredMoveDirection;
+    private Vector3 moveVector;
+    private float verticalVel;
+    [SerializeField] private GameInput gameInput;
+
+    [Header("Settings")]
+    [SerializeField] float movementSpeed;
+    [SerializeField] float rotationSpeed = 0.1f;
+    [SerializeField] float fallSpeed = .2f;
+    public float acceleration = 1;
+
+    [Header("Booleans")]
+    [SerializeField] bool blockRotationPlayer;
+    private bool isGrounded;
     private Vector3 currentRunMovement;
-    private bool movementPressed;
-    private bool runPressed;
-    private bool isWalking;
-    [SerializeField] private float rotationFactorPerFrame = 15f;
-    [SerializeField] private float runSpeed = 3f;
-    [SerializeField] private float moveSpeed = 15f;
 
     private void Awake()
     {
         Instance = this;
-        characterController = GetComponent<CharacterController>();
-    }
-
-    private void FixedUpdate()
-    {
-        characterController.Move(currentMovement * Time.deltaTime);
+        controller = GetComponent<CharacterController>();
+        anim = GetComponentInChildren<Animator>();
+        cam = Camera.main;
     }
 
     private void Update()
     {
-        HandleGravity();
-        HandleMovement();
+        InputMagnitude();
+
+        isGrounded = controller.isGrounded;
+
+        if (isGrounded)
+            verticalVel -= 0;
+        else
+            verticalVel -= 1;
+
+        moveVector = new Vector3(0, verticalVel * fallSpeed * Time.deltaTime, 0);
+        controller.Move(moveVector);
     }
 
-    private void OnRun(InputAction.CallbackContext context)
+    public void LookAt(Vector3 pos)
     {
-        runPressed = context.ReadValueAsButton();
+        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(pos), rotationSpeed);
+    }
+
+    public void RotateToCamera(Transform t)
+    {
+        var forward = cam.transform.forward;
+
+        desiredMoveDirection = forward;
+        Quaternion lookAtRotation = Quaternion.LookRotation(desiredMoveDirection);
+        Quaternion lookAtRotationOnly_Y = Quaternion.Euler(transform.rotation.eulerAngles.x, lookAtRotation.eulerAngles.y, transform.rotation.eulerAngles.z);
+
+        t.rotation = Quaternion.Slerp(transform.rotation, lookAtRotationOnly_Y, rotationSpeed);
+    }
+
+    void InputMagnitude()
+    {
+        //Calculate the Input Magnitude
+        float inputMagnitude = new Vector2(gameInput.GetMovementVectorNormalized().x, gameInput.GetMovementVectorNormalized().y).sqrMagnitude;
+
+        //Physically move player
+        if (inputMagnitude > 0.1f)
+        {
+            anim.SetFloat("InputMagnitude", inputMagnitude * acceleration, .1f, Time.deltaTime);
+            HandleMovement();
+        }
+        else
+        {
+            anim.SetFloat("InputMagnitude", inputMagnitude * acceleration, .1f, Time.deltaTime);
+        }
     }
 
     private void HandleMovement()
     {
-        Vector2 inputVector = gameInput.GetMovementVectorNormalized();
-        Vector3 moveDir = new Vector3(inputVector.x, 0, inputVector.y);
+        var forward = cam.transform.forward;
+        var right = cam.transform.right;
 
-        float playerRadius = 2f;
-        float playerHeight = 6f;
-        float moveDistance = moveSpeed * Time.deltaTime;
-        bool canMove = !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, moveDir, moveDistance);
-        isWalking = moveDir != Vector3.zero;
-        float rotateSpeed = 10f;
+        forward.y = 0f;
+        right.y = 0f;
 
-        if (!canMove)
+        forward.Normalize();
+        right.Normalize();
+
+        desiredMoveDirection = forward * gameInput.GetMovementVectorNormalized().y + right * gameInput.GetMovementVectorNormalized().x;
+
+        if (blockRotationPlayer == false)
         {
-            // Cannot move towards moveDir
-            // Attempt only X movement
-            Vector3 moveDirX = new Vector3(moveDir.x, 0, 0).normalized;
-            canMove = (moveDir.x < -0.5f || moveDir.x > +0.5f) && !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, moveDirX, moveDistance);
-
-            if (canMove)
-            {
-                // can move only on the X 
-                moveDir = moveDirX;
-            }
-            else
-            {
-                Vector3 moveDirZ = new Vector3(0, 0, moveDir.z).normalized;
-                canMove = (moveDir.z < -0.5f || moveDir.z > +0.5f) && !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, moveDirZ, moveDistance);
-
-                if (canMove)
-                {
-                    // can move only on the Z
-                    moveDir = moveDirZ;
-                }
-                else
-                {
-                    // Cannot move any direction
-                }
-            }
-        }
-
-        if (canMove)
-        {
-            transform.position += moveDir * moveSpeed * Time.deltaTime;
-        }
-        transform.forward = Vector3.Slerp(transform.forward, moveDir, Time.deltaTime * rotateSpeed);
-    }
-
-    private void HandleGravity()
-    {
-        if (characterController.isGrounded)
-        {
-            float groundedGravity = -0.05f;
-            currentMovement.y = groundedGravity;
-            currentRunMovement.y = groundedGravity;
+            //Camera
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(desiredMoveDirection), rotationSpeed * acceleration);
+            controller.Move(desiredMoveDirection * Time.deltaTime * (movementSpeed * acceleration));
         }
         else
         {
-            float gravity = -9.8f;
-            currentMovement.y += gravity;
+            //Strafe
+            controller.Move((transform.forward * gameInput.GetMovementVectorNormalized().y + transform.right * gameInput.GetMovementVectorNormalized().y) * Time.deltaTime * (movementSpeed * acceleration));
         }
     }
 
-    public bool IsMovementPressed()
+    private void OnDisable()
     {
-        return movementPressed;
-    }
-
-    public bool IsRunPressed()
-    {
-        return runPressed;
+        anim.SetFloat("InputMagnitude", 0);
     }
 }
