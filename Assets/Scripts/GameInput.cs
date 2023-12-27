@@ -15,6 +15,8 @@ public class GameInput : MonoBehaviour
         Instance = this;
 
         inputControlls = new InputControls();
+
+        inputControlls.PlayerControls.Run.performed += OnRun;
     }
 
     public float GetInputMagnitude()

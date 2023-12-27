@@ -21,7 +21,6 @@ public class Player : MonoBehaviour
     [Header("Booleans")]
     [SerializeField] bool blockRotationPlayer;
     private bool isGrounded;
-    private Vector3 currentRunMovement;
 
     private void Awake()
     {
