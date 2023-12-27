@@ -1,11 +1,9 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
 public class Player : MonoBehaviour
 {
     public static Player Instance { get; private set; }
-    private Animator anim;
     private Camera cam;
     private CharacterController controller;
 
@@ -15,10 +13,10 @@ public class Player : MonoBehaviour
     [SerializeField] private GameInput gameInput;
 
     [Header("Settings")]
-    [SerializeField] float movementSpeed;
-    [SerializeField] float rotationSpeed = 0.1f;
-    [SerializeField] float fallSpeed = .2f;
-    public float acceleration = 1;
+    [SerializeField] private float movementSpeed;
+    [SerializeField] private float rotationSpeed = 0.1f;
+    [SerializeField] private float fallSpeed = .2f;
+    [SerializeField] private float acceleration = 1;
 
     [Header("Booleans")]
     [SerializeField] bool blockRotationPlayer;
@@ -29,13 +27,14 @@ public class Player : MonoBehaviour
     {
         Instance = this;
         controller = GetComponent<CharacterController>();
-        anim = GetComponentInChildren<Animator>();
         cam = Camera.main;
     }
 
     private void Update()
     {
-        InputMagnitude();
+        //Physically move player
+        if (gameInput.GetInputMagnitude() > 0.1f)
+            HandleMovement();
 
         isGrounded = controller.isGrounded;
 
@@ -64,24 +63,7 @@ public class Player : MonoBehaviour
         t.rotation = Quaternion.Slerp(transform.rotation, lookAtRotationOnly_Y, rotationSpeed);
     }
 
-    void InputMagnitude()
-    {
-        //Calculate the Input Magnitude
-        float inputMagnitude = new Vector2(gameInput.GetMovementVectorNormalized().x, gameInput.GetMovementVectorNormalized().y).sqrMagnitude;
-
-        //Physically move player
-        if (inputMagnitude > 0.1f)
-        {
-            anim.SetFloat("InputMagnitude", inputMagnitude * acceleration, .1f, Time.deltaTime);
-            HandleMovement();
-        }
-        else
-        {
-            anim.SetFloat("InputMagnitude", inputMagnitude * acceleration, .1f, Time.deltaTime);
-        }
-    }
-
-    private void HandleMovement()
+    public void HandleMovement()
     {
         var forward = cam.transform.forward;
         var right = cam.transform.right;
@@ -107,8 +89,8 @@ public class Player : MonoBehaviour
         }
     }
 
-    private void OnDisable()
+    public float GetAcceleration()
     {
-        anim.SetFloat("InputMagnitude", 0);
+        return acceleration;
     }
 }

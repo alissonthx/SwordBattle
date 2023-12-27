@@ -17,6 +17,12 @@ public class GameInput : MonoBehaviour
         inputControlls = new InputControls();
     }
 
+    public float GetInputMagnitude()
+    {
+        float inputMagnitude = new Vector2(GetMovementVectorNormalized().x, GetMovementVectorNormalized().y).sqrMagnitude;
+        return inputMagnitude;
+    }
+
     public void OnRun(InputAction.CallbackContext context)
     {
         runPressed = context.ReadValueAsButton();
