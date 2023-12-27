@@ -5,8 +5,8 @@ public class PlayerAnimation : MonoBehaviour
     private Animator anim;
     [SerializeField] private GameInput gameInput;
     [SerializeField] private string IS_WALKING = "isWalking";
-    [SerializeField] private string IS_RUNING = "isRunning";
-    [SerializeField] private string INPUT_MAGNITUDE = "InputMagnitude";
+    [SerializeField] private string IS_RUNNING = "isRunning";
+    // [SerializeField] private string INPUT_MAGNITUDE = "InputMagnitude";
 
     private void Awake()
     {
@@ -21,26 +21,31 @@ public class PlayerAnimation : MonoBehaviour
     private void HandleAnimation()
     {
         bool isWalking = anim.GetBool(IS_WALKING);
-        bool isRunning = anim.GetBool(IS_RUNING);
+        bool isRunning = anim.GetBool(IS_RUNNING);
 
         if (gameInput.IsMovementPressed() && !isWalking)
         {
             anim.SetBool(IS_WALKING, true);
-            anim.SetFloat(INPUT_MAGNITUDE, gameInput.GetInputMagnitude() * Player.Instance.GetAcceleration(), .1f, Time.deltaTime);
+            // anim.SetFloat(INPUT_MAGNITUDE, gameInput.GetInputMagnitude() * Player.Instance.GetAcceleration(), .1f, Time.deltaTime);
         }
         else if (!gameInput.IsMovementPressed() && isWalking)
         {
             anim.SetBool(IS_WALKING, false);
         }
 
-        if (gameInput.IsMovementPressed() && gameInput.IsRunPressed() && !isRunning)
+        else if (gameInput.IsMovementPressed() && gameInput.IsRunPressed() && !isRunning)
         {
-            anim.SetBool(IS_RUNING, true);
+            anim.SetBool(IS_RUNNING, true);
+        }
+
+        else if (!gameInput.IsRunPressed() && isRunning)
+        {
+            anim.SetBool(IS_RUNNING, false);
         }
     }
 
-    private void OnDisable()
-    {
-        anim.SetFloat("InputMagnitude", 0);
-    }
+    // private void OnDisable()
+    // {
+    //     anim.SetFloat("InputMagnitude", 0);
+    // }
 }

@@ -17,6 +17,7 @@ public class GameInput : MonoBehaviour
         inputControlls = new InputControls();
 
         inputControlls.PlayerControls.Run.performed += OnRun;
+        inputControlls.PlayerControls.Run.canceled += OnRun;
     }
 
     public float GetInputMagnitude()
@@ -25,10 +26,6 @@ public class GameInput : MonoBehaviour
         return inputMagnitude;
     }
 
-    public void OnRun(InputAction.CallbackContext context)
-    {
-        runPressed = context.ReadValueAsButton();
-    }
 
     public Vector2 GetMovementVectorNormalized()
     {
@@ -45,6 +42,10 @@ public class GameInput : MonoBehaviour
     public bool IsRunPressed()
     {
         return runPressed;
+    }
+    private void OnRun(InputAction.CallbackContext context)
+    {
+        runPressed = context.ReadValueAsButton();
     }
 
     private void OnEnable()
